@@ -1,0 +1,1141 @@
+<!--<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Liver Cirrhosis Prediction Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #d7e371;
+}
+
+/* LAYOUT */
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, #6fa0d6, #ba81e1);
+    color: #ecb8b8;
+    padding: 25px;
+}
+
+.sidebar h2 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* CONTENT */
+.content {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+/* CARD */
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    max-width: 1100px;
+}
+
+/* FORM */
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+}
+
+button.action {
+    background: linear-gradient(135deg, #28a745, #3ddc84);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.hidden { display: none; }
+
+/* GRAPH GRID */
+.graph-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.graph-box {
+    height: 300px;
+    background: #f9fbff;
+    border-radius: 15px;
+    padding: 15px;
+}
+
+.graph-box canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media (max-width: 900px) {
+    .graph-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+SIDEBAR
+<div class="sidebar">
+    <h2>Dashboard</h2>
+    <button onclick="showSection('patient')">Patient Registration</button>
+    <button onclick="showSection('upload')">Upload Ultrasound</button>
+    <button onclick="showSection('visual')">Visualization</button>
+</div>
+
+ CONTENT
+<div class="content">
+
+ PATIENT
+<div id="patient" class="card">
+    <h2>Patient Registration</h2>
+    <input placeholder="Patient Name">
+    <input placeholder="Age">
+    <select>
+        <option>Male</option>
+        <option>Female</option>
+    </select>
+    <button class="action" onclick="showSection('upload')">Save & Continue</button>
+</div>
+
+UPLOAD
+<div id="upload" class="card hidden">
+    <h2>Upload Ultrasound Image</h2>
+    <input type="file" accept="image/*">
+    <br><br>
+    <button class="action" onclick="analyzeImage()">Analyze Image</button>
+</div>
+
+ VISUALIZATION
+<div id="visual" class="card hidden">
+    <h2 id="resultTitle"></h2>
+
+    <p><b>Confidence:</b> <span id="confidence"></span></p>
+    <p><b>Accuracy:</b> <span id="accuracy"></span></p>
+    <p><b>Reason:</b> <span id="reason"></span></p>
+
+    <div class="graph-grid">
+        <div class="graph-box"><canvas id="chart1"></canvas></div>
+        <div class="graph-box"><canvas id="chart2"></canvas></div>
+        <div class="graph-box"><canvas id="chart3"></canvas></div>
+        <div class="graph-box"><canvas id="chart4"></canvas></div>
+    </div>
+</div>
+
+</div>
+</div>
+
+<script>
+let charts = [];
+
+/* SECTION CONTROL */
+function showSection(id) {
+    document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+
+/* RANDOM ANALYSIS */
+function analyzeImage() {
+    const stages = ["F0", "F1", "F2", "F3", "F4"];
+    const reasons = {
+        F0: "Healthy liver structure with no fibrosis detected.",
+        F1: "Early fibrosis due to mild inflammation or fatty liver.",
+        F2: "Moderate fibrosis caused by prolonged liver stress.",
+        F3: "Severe fibrosis with structural liver damage.",
+        F4: "Advanced cirrhosis due to chronic liver disease."
+    };
+
+    const stage = stages[Math.floor(Math.random() * stages.length)];
+    const confidenceVal = (Math.random() * 0.2 + 0.75).toFixed(2);
+    const accuracyVal = (Math.random() * 0.1 + 0.88).toFixed(2);
+
+    document.getElementById("resultTitle").innerText =
+        "Predicted Cirrhosis Stage: " + stage;
+
+    document.getElementById("confidence").innerText =
+        (confidenceVal * 100).toFixed(1) + "%";
+
+    document.getElementById("accuracy").innerText =
+        (accuracyVal * 100).toFixed(1) + "%";
+
+    document.getElementById("reason").innerText = reasons[stage];
+
+    showSection("visual");
+    drawGraphs(stage, confidenceVal);
+}
+
+/* DRAW GRAPHS */
+function drawGraphs(stage, confidence) {
+    charts.forEach(c => c.destroy());
+    charts = [];
+
+    const labels = ["F0","F1","F2","F3","F4"];
+    const probs = labels.map(l =>
+        l === stage ? confidence * 100 : Math.random() * 20
+    );
+
+    charts.push(new Chart(chart1, {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Stage Probability (%)", data: probs }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    }));
+
+    charts.push(new Chart(chart2, {
+        type: "pie",
+        data: { labels, datasets: [{ data: probs }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    }));
+
+    charts.push(new Chart(chart3, {
+        type: "line",
+        data: { labels, datasets: [{ label: "Severity Trend", data: probs, tension: 0.4 }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    }));
+
+    charts.push(new Chart(chart4, {
+        type: "radar",
+        data: {
+            labels: ["Texture","Shape","Echo","Edge","Surface"],
+            datasets: [{ data: [
+                Math.random()*100,
+                Math.random()*100,
+                Math.random()*100,
+                Math.random()*100,
+                Math.random()*100
+            ] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    }));
+}
+</script>
+
+</body>
+</html>-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LiverAI | Prediction Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+    --primary-blue: #2C5AA0;
+    --primary-purple: #6A4C93;
+    --medical-teal: #3A86FF;
+    --health-green: #38B000;
+    --warning-orange: #FF9E00;
+    --alert-red: #E63946;
+    --dark-bg: #1A1A2E;
+    --sidebar-bg: #16213E;
+    --card-bg: #FFFFFF;
+    --light-bg: #F8F9FA;
+    --border-color: #E2E8F0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+/* ================= LAYOUT ================= */
+.container {
+    display: flex;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.95);
+    margin: 20px;
+    border-radius: 25px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* ================= SIDEBAR ================= */
+.sidebar {
+    width: 300px;
+    background: linear-gradient(180deg, var(--dark-bg) 0%, var(--sidebar-bg) 100%);
+    color: white;
+    padding: 35px 25px;
+    display: flex;
+    flex-direction: column;
+    border-right: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header i {
+    font-size: 28px;
+    color: var(--medical-teal);
+    background: rgba(58, 134, 255, 0.1);
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.sidebar-header h2 {
+    font-size: 24px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #FF9E00, #3A86FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+}
+
+.sidebar-btn {
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    border-radius: 12px;
+    color: #E2E8F0;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.sidebar-btn:hover {
+    background: rgba(58, 134, 255, 0.2);
+    transform: translateX(5px);
+    color: white;
+    box-shadow: 0 5px 15px rgba(58, 134, 255, 0.2);
+}
+
+.sidebar-btn i {
+    font-size: 18px;
+    width: 24px;
+    color: var(--medical-teal);
+}
+
+.sidebar-btn.active {
+    background: linear-gradient(135deg, var(--medical-teal), #764ba2);
+    color: white;
+    box-shadow: 0 5px 15px rgba(58, 134, 255, 0.3);
+}
+
+.sidebar-btn.active i {
+    color: white;
+}
+
+/* ================= CONTENT ================= */
+.content {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+    background: var(--light-bg);
+}
+
+/* ================= CARD STYLES ================= */
+.card {
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    max-width: 1000px;
+    margin: 0 auto;
+    border: 1px solid var(--border-color);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.card-header i {
+    font-size: 28px;
+    color: var(--medical-teal);
+    background: rgba(58, 134, 255, 0.1);
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.card-header h2 {
+    font-size: 28px;
+    color: var(--dark-bg);
+    font-weight: 600;
+}
+
+/* ================= FORM STYLES ================= */
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: #4A5568;
+    font-weight: 500;
+    font-size: 15px;
+}
+
+.form-label i {
+    color: var(--medical-teal);
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 16px 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--medical-teal);
+    box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.1);
+}
+
+.form-input::placeholder {
+    color: #A0AEC0;
+}
+
+/* ================= BUTTON STYLES ================= */
+.action-btn {
+    background: linear-gradient(135deg, var(--medical-teal), #6A4C93);
+    color: white;
+    padding: 16px 35px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(58, 134, 255, 0.2);
+}
+
+.action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(58, 134, 255, 0.3);
+}
+
+.action-btn:active {
+    transform: translateY(-1px);
+}
+
+.action-btn i {
+    font-size: 18px;
+}
+
+/* ================= UPLOAD AREA ================= */
+.upload-area {
+    border: 3px dashed var(--border-color);
+    border-radius: 20px;
+    padding: 60px 40px;
+    text-align: center;
+    margin: 30px 0;
+    background: rgba(248, 249, 250, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: var(--medical-teal);
+    background: rgba(58, 134, 255, 0.05);
+}
+
+.upload-icon {
+    font-size: 60px;
+    color: var(--medical-teal);
+    margin-bottom: 20px;
+}
+
+.upload-text {
+    color: #4A5568;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.upload-hint {
+    color: #A0AEC0;
+    font-size: 14px;
+}
+
+/* ================= RESULT STYLES ================= */
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.result-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--dark-bg);
+}
+
+.result-stage {
+    padding: 12px 25px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 18px;
+    color: white;
+    background: linear-gradient(135deg, var(--health-green), #38B000);
+}
+
+/* Stage-specific colors */
+.stage-f0 { background: linear-gradient(135deg, var(--health-green), #38B000); }
+.stage-f1 { background: linear-gradient(135deg, var(--medical-teal), #3A86FF); }
+.stage-f2 { background: linear-gradient(135deg, var(--warning-orange), #FF9E00); }
+.stage-f3 { background: linear-gradient(135deg, #FB8500, #FFB703); }
+.stage-f4 { background: linear-gradient(135deg, var(--alert-red), #E63946); }
+
+.result-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.metric-card {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    color: var(--dark-bg);
+    font-weight: 600;
+}
+
+.metric-header i {
+    font-size: 20px;
+    color: var(--medical-teal);
+}
+
+.metric-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--dark-bg);
+    margin-bottom: 5px;
+}
+
+.metric-value.confidence { color: var(--medical-teal); }
+.metric-value.accuracy { color: var(--health-green); }
+
+.metric-label {
+    color: #718096;
+    font-size: 14px;
+}
+
+.reason-card {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 40px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.reason-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    color: var(--dark-bg);
+    font-weight: 600;
+}
+
+.reason-header i {
+    color: var(--medical-teal);
+}
+
+.reason-text {
+    color: #4A5568;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+/* ================= GRAPH GRID ================= */
+.graph-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+    margin-top: 30px;
+}
+
+.graph-box {
+    background: white;
+    height: 320px;
+    border-radius: 16px;
+    padding: 25px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.graph-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: var(--dark-bg);
+    font-weight: 600;
+}
+
+.graph-header i {
+    color: var(--medical-teal);
+}
+
+.graph-box canvas {
+    width: 100% !important;
+    height: calc(100% - 40px) !important;
+}
+
+/* ================= UTILITY ================= */
+.hidden { display: none; }
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 1200px) {
+    .graph-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 992px) {
+    .container {
+        flex-direction: column;
+        margin: 10px;
+        height: auto;
+    }
+
+    .sidebar {
+        width: 100%;
+        padding: 20px;
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+
+    .sidebar-btn {
+        white-space: nowrap;
+    }
+
+    .content {
+        padding: 25px;
+    }
+}
+
+@media (max-width: 768px) {
+    .card {
+        padding: 25px;
+    }
+
+    .result-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .result-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+
+    .graph-box {
+        height: 280px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <i class="fas fa-heartbeat"></i>
+        <h2>LiverAI Dashboard</h2>
+    </div>
+
+    <div class="sidebar-nav">
+        <button class="sidebar-btn active" onclick="showSection('patient')">
+            <i class="fas fa-user-plus"></i>
+            <span>Patient Registration</span>
+        </button>
+
+        <button class="sidebar-btn" onclick="showSection('upload')">
+            <i class="fas fa-upload"></i>
+            <span>Upload Ultrasound</span>
+        </button>
+
+        <button class="sidebar-btn" onclick="showSection('visual')">
+            <i class="fas fa-chart-bar"></i>
+            <span>AI Visualization</span>
+        </button>
+    </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- PATIENT REGISTRATION -->
+<div id="patient" class="card">
+    <div class="card-header">
+        <i class="fas fa-user-plus"></i>
+        <h2>Patient Registration</h2>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">
+            <i class="fas fa-user"></i>
+            Patient Full Name
+        </label>
+        <input type="text" class="form-input" placeholder="Enter patient's full name">
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">
+            <i class="fas fa-birthday-cake"></i>
+            Age
+        </label>
+        <input type="number" class="form-input" placeholder="Enter patient's age" min="0" max="120">
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">
+            <i class="fas fa-venus-mars"></i>
+            Gender
+        </label>
+        <select class="form-select">
+            <option>Select gender</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+        </select>
+    </div>
+
+    <button class="action-btn" onclick="showSection('upload')">
+        <i class="fas fa-arrow-right"></i>
+        Save & Continue
+    </button>
+</div>
+
+<!-- UPLOAD SECTION -->
+<div id="upload" class="card hidden">
+    <div class="card-header">
+        <i class="fas fa-upload"></i>
+        <h2>Upload Ultrasound Image</h2>
+    </div>
+
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">
+            <i class="fas fa-file-upload"></i>
+        </div>
+        <div class="upload-text">
+            Click to upload or drag & drop
+        </div>
+        <div class="upload-hint">
+            Supports JPG, PNG formats • Max 10MB
+        </div>
+        <input type="file" id="fileInput" accept="image/*" class="hidden">
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <button class="action-btn" onclick="analyzeImage()">
+            <i class="fas fa-microscope"></i>
+            Analyze with AI
+        </button>
+    </div>
+</div>
+
+<!-- VISUALIZATION SECTION -->
+<div id="visual" class="card hidden">
+    <div class="result-header">
+        <div class="result-title" id="resultTitle">
+            AI Analysis Results
+        </div>
+        <div class="result-stage" id="resultStage">
+            F0 Stage
+        </div>
+    </div>
+
+    <div class="result-metrics">
+        <div class="metric-card">
+            <div class="metric-header">
+                <i class="fas fa-chart-line"></i>
+                <span>Prediction Confidence</span>
+            </div>
+            <div class="metric-value confidence" id="confidence">
+                89.5%
+            </div>
+            <div class="metric-label">AI confidence in diagnosis</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-header">
+                <i class="fas fa-bullseye"></i>
+                <span>Model Accuracy</span>
+            </div>
+            <div class="metric-value accuracy" id="accuracy">
+                94.2%
+            </div>
+            <div class="metric-label">Overall system accuracy</div>
+        </div>
+    </div>
+
+    <div class="reason-card">
+        <div class="reason-header">
+            <i class="fas fa-stethoscope"></i>
+            <span>Clinical Interpretation</span>
+        </div>
+        <div class="reason-text" id="reason">
+            Healthy liver structure with no fibrosis detected. Ultrasound shows normal echogenicity and smooth liver margins.
+        </div>
+    </div>
+
+    <div class="graph-grid">
+        <div class="graph-box">
+            <div class="graph-header">
+                <i class="fas fa-chart-bar"></i>
+                <span>Stage Probability Distribution</span>
+            </div>
+            <canvas id="chart1"></canvas>
+        </div>
+
+        <div class="graph-box">
+            <div class="graph-header">
+                <i class="fas fa-chart-pie"></i>
+                <span>Diagnosis Breakdown</span>
+            </div>
+            <canvas id="chart2"></canvas>
+        </div>
+
+        <div class="graph-box">
+            <div class="graph-header">
+                <i class="fas fa-chart-line"></i>
+                <span>Severity Progression</span>
+            </div>
+            <canvas id="chart3"></canvas>
+        </div>
+
+        <div class="graph-box">
+            <div class="graph-header">
+                <i class="fas fa-radar"></i>
+                <span>Liver Characteristics</span>
+            </div>
+            <canvas id="chart4"></canvas>
+        </div>
+    </div>
+</div>
+
+</div>
+</div>
+
+<script>
+let charts = [];
+
+/* SECTION CONTROL */
+function showSection(id) {
+    // Update active button
+    document.querySelectorAll('.sidebar-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`.sidebar-btn[onclick="showSection('${id}')"]`).classList.add('active');
+
+    // Show section
+    document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+
+/* RANDOM ANALYSIS */
+function analyzeImage() {
+    const stages = ["F0", "F1", "F2", "F3", "F4"];
+    const reasons = {
+        F0: "Healthy liver structure with no fibrosis detected. Ultrasound shows normal echogenicity and smooth liver margins.",
+        F1: "Early fibrosis detected with minimal portal fibrosis. Mild inflammation present but liver architecture is preserved.",
+        F2: "Moderate fibrosis with septa formation. Portal fibrosis is expanding with early bridging between portal areas.",
+        F3: "Severe fibrosis with numerous septa but no cirrhosis. Significant architectural distortion is evident.",
+        F4: "Advanced cirrhosis detected with regenerative nodules. Liver shows established cirrhosis with clear nodularity."
+    };
+
+    const stageNames = {
+        F0: "No Fibrosis",
+        F1: "Mild Fibrosis",
+        F2: "Moderate Fibrosis",
+        F3: "Severe Fibrosis",
+        F4: "Cirrhosis"
+    };
+
+    const stage = stages[Math.floor(Math.random() * stages.length)];
+    const confidenceVal = (Math.random() * 0.2 + 0.75).toFixed(3);
+    const accuracyVal = (Math.random() * 0.1 + 0.88).toFixed(3);
+
+    // Update UI
+    document.getElementById("resultTitle").innerText = `AI Diagnosis: ${stageNames[stage]}`;
+    document.getElementById("resultStage").innerText = `${stage} Stage`;
+    document.getElementById("resultStage").className = `result-stage stage-${stage.toLowerCase()}`;
+    document.getElementById("confidence").innerText = `${(confidenceVal * 100).toFixed(1)}%`;
+    document.getElementById("accuracy").innerText = `${(accuracyVal * 100).toFixed(1)}%`;
+    document.getElementById("reason").innerText = reasons[stage];
+
+    // Show visualization section
+    showSection("visual");
+
+    // Draw graphs with new data
+    drawGraphs(stage, confidenceVal);
+}
+
+/* DRAW GRAPHS */
+function drawGraphs(stage, confidence) {
+    // Clear existing charts
+    charts.forEach(c => c.destroy());
+    charts = [];
+
+    const labels = ["F0", "F1", "F2", "F3", "F4"];
+    const stageIndex = labels.indexOf(stage);
+
+    // Generate probabilities with the selected stage highest
+    const probs = labels.map((label, index) => {
+        if (label === stage) {
+            return confidence * 100;
+        } else {
+            // Other stages get lower probabilities
+            const baseProb = Math.random() * 20;
+            return Math.min(baseProb, 30); // Cap at 30%
+        }
+    });
+
+    // Bar Chart - Stage Probability
+    const ctx1 = document.getElementById('chart1').getContext('2d');
+    charts.push(new Chart(ctx1, {
+        type: "bar",
+        data: {
+            labels,
+            datasets: [{
+                label: "Probability (%)",
+                data: probs,
+                backgroundColor: [
+                    '#38B000',  // F0 - Green
+                    '#3A86FF',  // F1 - Blue
+                    '#FF9E00',  // F2 - Orange
+                    '#FB8500',  // F3 - Dark Orange
+                    '#E63946'   // F4 - Red
+                ],
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { callback: value => value + '%' }
+                }
+            }
+        }
+    }));
+
+    // Pie Chart
+    const ctx2 = document.getElementById('chart2').getContext('2d');
+    charts.push(new Chart(ctx2, {
+        type: "pie",
+        data: {
+            labels,
+            datasets: [{
+                data: probs,
+                backgroundColor: [
+                    '#38B000',
+                    '#3A86FF',
+                    '#FF9E00',
+                    '#FB8500',
+                    '#E63946'
+                ],
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    }));
+
+    // Line Chart - Severity Trend
+    const ctx3 = document.getElementById('chart3').getContext('2d');
+    charts.push(new Chart(ctx3, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label: "Severity Trend",
+                data: probs,
+                borderColor: '#3A86FF',
+                backgroundColor: 'rgba(58, 134, 255, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { callback: value => value + '%' }
+                }
+            }
+        }
+    }));
+
+    // Radar Chart - Liver Characteristics
+    const ctx4 = document.getElementById('chart4').getContext('2d');
+    const liverLabels = ["Texture", "Echo", "Margin", "Surface", "Vessels"];
+    const liverData = liverLabels.map(() => Math.random() * 80 + 20);
+
+    charts.push(new Chart(ctx4, {
+        type: "radar",
+        data: {
+            labels: liverLabels,
+            datasets: [{
+                label: "Liver Characteristics",
+                data: liverData,
+                backgroundColor: 'rgba(58, 134, 255, 0.2)',
+                borderColor: '#3A86FF',
+                borderWidth: 2,
+                pointBackgroundColor: '#3A86FF',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { display: false }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    }));
+}
+
+// Initialize with default view
+document.addEventListener('DOMContentLoaded', function() {
+    showSection('patient');
+});
+</script>
+
+</body>
+</html>
